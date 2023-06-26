@@ -215,7 +215,10 @@ void loop() {
     return;
   }
 
-  pub_feed_button.publish("pressed");
+  // Only if someone pressed the external button (which causes the ESP32 to wake up)
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0) {
+    pub_feed_button.publish("pressed");
+  }
 
   Serial.println("Disconnecting from broker…");
   mqtt.disconnect();
