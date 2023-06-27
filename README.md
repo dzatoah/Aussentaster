@@ -25,7 +25,7 @@ which uses only very little energy to keep the RTC hardware going.
     - Can also ask for MQTT server settings.
     - Should be triggered when holding button for 15 seconds. (This should factory reset the device)
   - [ ] Add double click?
-  - [ ] Rename ino + build files
+  - [x] Rename ino + build files
   - [ ] Fix/Test OTA over external webserver?!
   - [ ] Add documentation about integrating this into homeassistant
   - [x] Send battery level and software version over MQTT
