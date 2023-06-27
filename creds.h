@@ -36,9 +36,9 @@ const gpio_num_t EXTERNAL_BAT_ADC_PIN = GPIO_NUM_34;
 #define MQTT_USERNAME "<USERNAME>"
 #define MQTT_KEY "<PASSWORD>"
 
-#define MQTT_BUTTON_TOPIC  "/button"
-#define MQTT_OTA_TOPIC     "/ota"
-#define MQTT_BATTERY_TOPIC "/battery_level"
+#define MQTT_BUTTON_TOPIC "/button"
+#define MQTT_OTA_TOPIC    "/ota"
+#define MQTT_STATUS_TOPIC "/status"
 
 // OTA Mode
 #define OTA_SEC_WAIT_FOR_UPLOAD 5 * 60

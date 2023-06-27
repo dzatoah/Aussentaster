@@ -46,8 +46,8 @@ More resistence -> more unstable but longer battery life
 
 */
 
-const char compile_date[] = __DATE__ " " __TIME__;
-#define SOFTWARE_VERSION "1.0.1"
+#define COMPILE_TIME __DATE__ " " __TIME__
+#define SOFTWARE_VERSION "1.0.2"
 
 // Function prototypes
 void print_wakeup_reason();
@@ -63,9 +63,9 @@ ESP32AnalogRead adc;
 WiFiClient client;
 Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_KEY);
 
-Adafruit_MQTT_Publish   pub_feed_button  = Adafruit_MQTT_Publish(&mqtt, HOSTNAME MQTT_BUTTON_TOPIC);
-Adafruit_MQTT_Publish   pub_feed_battery = Adafruit_MQTT_Publish(&mqtt, HOSTNAME MQTT_BATTERY_TOPIC);
-Adafruit_MQTT_Subscribe sub_feed_ota     = Adafruit_MQTT_Subscribe(&mqtt, HOSTNAME MQTT_OTA_TOPIC);
+Adafruit_MQTT_Publish   pub_feed_button = Adafruit_MQTT_Publish(&mqtt, HOSTNAME MQTT_BUTTON_TOPIC);
+Adafruit_MQTT_Publish   pub_feed_status = Adafruit_MQTT_Publish(&mqtt, HOSTNAME MQTT_STATUS_TOPIC);
+Adafruit_MQTT_Subscribe sub_feed_ota    = Adafruit_MQTT_Subscribe(&mqtt, HOSTNAME MQTT_OTA_TOPIC);
 
 long otamode_then_global   = 0;
 long otamode_then_reminder = millis();
@@ -79,7 +79,7 @@ void setup() {
   Serial.begin(115200);
   Serial.printf("Booting for the %i time\n", bootCount++);
   Serial.printf("Software Version: %s\n", SOFTWARE_VERSION);
-  Serial.printf("Compile Date: %s\n", compile_date);
+  Serial.printf("Compile Date: %s\n", COMPILE_TIME);
 
   pinMode(EXTERNAL_BUTTON_PIN, INPUT);
   pinMode(LED_BUILTIN, OUTPUT);
@@ -254,11 +254,11 @@ void loop() {
   Serial.printf("Bat Percentage: %f%\n", bat_percentage);
 
   char buffer[400];
-  sprintf(buffer, "{\"bat_voltage\": \"%f\", \"bat_percentage\": \"%f\", \"software_version\": \"%s\", \"compile_date\": \"%s\"}", bat_voltage, bat_percentage, SOFTWARE_VERSION, compile_date);
+  sprintf(buffer, "{\"bat_voltage\": %f, \"bat_percentage\": %f, \"software_version\": \"%s\"}", bat_voltage, bat_percentage, SOFTWARE_VERSION);
 
-  Serial.printf("MQTT (send): '%s': '%s'\n", HOSTNAME MQTT_BATTERY_TOPIC, buffer);
+  Serial.printf("MQTT (send): '%s': '%s'\n", HOSTNAME MQTT_STATUS_TOPIC, buffer);
   MQTT_connect();
-  pub_feed_battery.publish(buffer);
+  pub_feed_status.publish(buffer);
   delay(200);
 
   Serial.println("Disconnecting from broker…");
