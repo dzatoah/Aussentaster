@@ -47,7 +47,7 @@ More resistence -> more unstable but longer battery life
 */
 
 const char compile_date[] = __DATE__ " " __TIME__;
-#define SOFTWARE_VERSION "1.0"
+#define SOFTWARE_VERSION "1.0.1"
 
 // Function prototypes
 void print_wakeup_reason();
@@ -207,6 +207,8 @@ bool checkForOTA() {
   return false;
 }
 
+float bat_voltage;
+float bat_percentage;
 void loop() {
   if (otaMode) {
     // Countdown
@@ -243,20 +245,21 @@ void loop() {
     pub_feed_button.publish("pressed");
   }
 
-  float bat_voltage    = adc.readVoltage() * 1.7f;
-  float bat_percentage = ((bat_voltage - 3.1f) / (4.2f - 3.1f)) * 100;
+  bat_voltage    = adc.readVoltage() * 1.7f;
+  bat_percentage = ((bat_voltage - 3.1f) / (4.2f - 3.1f)) * 100;
 
   Serial.printf("Bat Voltage:    %f\n", bat_voltage);
   Serial.printf("Li-Ion Max:     %f\n", 4.2f);
   Serial.printf("Li-Ion Min:     %f\n", 3.1f);
   Serial.printf("Bat Percentage: %f%\n", bat_percentage);
 
-  char buffer[100];
-  sprintf(buffer, "{\"bat_voltage\": \"%f\", \"bat_percentage\": \"%f\"}", bat_voltage, bat_percentage);
+  char buffer[400];
+  sprintf(buffer, "{\"bat_voltage\": \"%f\", \"bat_percentage\": \"%f\", \"software_version\": \"%s\", \"compile_date\": \"%s\"}", bat_voltage, bat_percentage, SOFTWARE_VERSION, compile_date);
 
   Serial.printf("MQTT (send): '%s': '%s'\n", HOSTNAME MQTT_BATTERY_TOPIC, buffer);
   MQTT_connect();
   pub_feed_battery.publish(buffer);
+  delay(200);
 
   Serial.println("Disconnecting from broker…");
   mqtt.disconnect();
