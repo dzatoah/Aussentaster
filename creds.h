@@ -24,14 +24,21 @@ const gpio_num_t EXTERNAL_BUTTON_PIN = GPIO_NUM_13;
 // Is button active LOW? (By pressing the button the signal goes HIGH)
 const int EXTERNAL_BUTTON_NORMALLY_LOW = true;
 
+// You can build a voltage divider between GND and VBAT.
+// Connect the voltage divider to this ADC pin.
+// Please use 47k Ohm resistor or slightly more.
+// More resistence -> more unstable but longer battery life
+const gpio_num_t EXTERNAL_BAT_ADC_PIN = GPIO_NUM_34;
+
 // MQTT Settings
 #define MQTT_SERVER "mosquitto"
 #define MQTT_SERVERPORT 1883 // use 8883 for SSL
 #define MQTT_USERNAME "<USERNAME>"
 #define MQTT_KEY "<PASSWORD>"
 
-#define MQTT_BUTTON_TOPIC "/button"
-#define MQTT_OTA_TOPIC "/ota"
+#define MQTT_BUTTON_TOPIC  "/button"
+#define MQTT_OTA_TOPIC     "/ota"
+#define MQTT_BATTERY_TOPIC "/battery_level"
 
 // OTA Mode
 #define OTA_SEC_WAIT_FOR_UPLOAD 5 * 60

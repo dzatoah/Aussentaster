@@ -24,6 +24,8 @@
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
 
+#include <ESP32AnalogRead.h>
+
 #include "creds.h"
 
 /*
@@ -36,6 +38,12 @@ Hardware Connections
 ======================
 Push Button connected to a GPIO pin pulled down with a 10K Ohm resistor.
 Note you can only use the following pins : 0,2,4,12-15,25-27,32-39
+
+You can build a voltage divider between GND and VBAT.
+Connect the voltage divider to an ADC pin.
+Please use 47k Ohm resistor or slightly more (I've tested 100k Ohm and it worked).
+More resistence -> more unstable but longer battery life
+
 */
 
 // Function prototypes
@@ -47,11 +55,14 @@ void update_progress(int, int);
 void update_error(int);
 void sub_callback_ota(char*, uint16_t);
 
+ESP32AnalogRead adc;
+
 WiFiClient client;
 Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_KEY);
 
-Adafruit_MQTT_Publish   pub_feed_button = Adafruit_MQTT_Publish(&mqtt, HOSTNAME MQTT_BUTTON_TOPIC);
-Adafruit_MQTT_Subscribe sub_feed_ota    = Adafruit_MQTT_Subscribe(&mqtt, HOSTNAME MQTT_OTA_TOPIC);
+Adafruit_MQTT_Publish   pub_feed_button  = Adafruit_MQTT_Publish(&mqtt, HOSTNAME MQTT_BUTTON_TOPIC);
+Adafruit_MQTT_Publish   pub_feed_battery = Adafruit_MQTT_Publish(&mqtt, HOSTNAME MQTT_BATTERY_TOPIC);
+Adafruit_MQTT_Subscribe sub_feed_ota     = Adafruit_MQTT_Subscribe(&mqtt, HOSTNAME MQTT_OTA_TOPIC);
 
 long otamode_then_global   = 0;
 long otamode_then_reminder = millis();
@@ -65,6 +76,8 @@ void setup() {
 
   pinMode(EXTERNAL_BUTTON_PIN, INPUT);
   pinMode(LED_BUILTIN, OUTPUT);
+
+  adc.attach(EXTERNAL_BAT_ADC_PIN);
 
   print_wakeup_reason();
   esp_sleep_enable_ext0_wakeup(EXTERNAL_BUTTON_PIN, HIGH);
@@ -173,7 +186,8 @@ bool checkForOTA() {
     if (millis() - then >= 3*1000) {
       Serial.println("OTA mode actived.");
       then = millis();
-      otamode_then_global = millis();
+      otamode_then_global   = millis();
+      otamode_then_reminder = millis();
       return true;
     }
   }
@@ -191,7 +205,22 @@ void loop() {
   if (otaMode) {
     // Countdown
     if (millis() - otamode_then_reminder >= 10 * 1000) {
+      float bat_voltage    = adc.readVoltage() * 1.7f;
+      float bat_percentage = ((bat_voltage - 3.1f) / (4.2f - 3.1f)) * 100;
+
+      Serial.printf("Bat Voltage:    %f\n", bat_voltage);
+      Serial.printf("Li-Ion Max:     %f\n", 4.2f);
+      Serial.printf("Li-Ion Min:     %f\n", 3.1f);
+      Serial.printf("Bat Percentage: %f%\n", bat_percentage);
+
+      char buffer[100];
+      sprintf(buffer, "{\"bat_voltage\": \"%f\", \"bat_percentage\": \"%f\"}", bat_voltage, bat_percentage);
+
+      Serial.printf("MQTT (send): '%s': '%s'\n", HOSTNAME MQTT_BATTERY_TOPIC, buffer);
+      pub_feed_battery.publish(buffer);
+
       Serial.printf("Waiting for OTA (waited for %i of %i seconds already…)\n", (millis() - otamode_then_global) / 1000, OTA_SEC_WAIT_FOR_UPLOAD);
+      Serial.println();
       otamode_then_reminder = millis();
     }
 
@@ -217,6 +246,7 @@ void loop() {
 
   // Only if someone pressed the external button (which causes the ESP32 to wake up)
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0) {
+    Serial.printf("MQTT (send): '%s': '%s'\n", HOSTNAME MQTT_BUTTON_TOPIC, "pressed");
     pub_feed_button.publish("pressed");
   }
 
