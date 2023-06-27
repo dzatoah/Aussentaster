@@ -28,4 +28,4 @@ which uses only very little energy to keep the RTC hardware going.
   - [ ] Rename ino + build files
   - [ ] Fix/Test OTA over external webserver?!
   - [ ] Add documentation about integrating this into homeassistant
-  - [ ] Somehow send battery level over MQTT
+  - [x] Send battery level and software version over MQTT
