@@ -20,6 +20,13 @@ which uses only very little energy to keep the RTC hardware going.
 ### Sending MQTT messages if button was pressed
 `<HOSTNAME>/button` sends `pressed` when external button got single pressed.
 
+### Periodical status messages
+Status messages are sent every hour (configurable in creds.h) to `<HOSTNAME>/status`.
+This includes the software version and battery percentage. Note that you need
+to connect a voltage divider between VBAT and GND. Connect the voltage divider to a GPIO pin which
+supports ADC. Please use 47k Ohm resistor or slightly more (I've tested 100k Ohm and it worked).
+More resistence -> more unstable but longer battery life
+
 ### TODOs / Ideas
   - [ ] Use https://github.com/tzapu/WiFiManager for a more comfortable deployment.
     - Can also ask for MQTT server settings.
@@ -29,3 +36,4 @@ which uses only very little energy to keep the RTC hardware going.
   - [ ] Fix/Test OTA over external webserver?!
   - [ ] Add documentation about integrating this into homeassistant
   - [x] Send battery level and software version over MQTT
+  - [ ] ESP32 internal temperature?
