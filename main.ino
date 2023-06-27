@@ -241,25 +241,26 @@ void loop() {
     Serial.printf("MQTT (send): '%s': '%s'\n", HOSTNAME MQTT_BUTTON_TOPIC, "pressed");
     MQTT_connect();
     pub_feed_button.publish("pressed");
-  } else if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) {
-    float bat_voltage    = adc.readVoltage() * 1.7f;
-    float bat_percentage = ((bat_voltage - 3.1f) / (4.2f - 3.1f)) * 100;
-
-    Serial.printf("Bat Voltage:    %f\n", bat_voltage);
-    Serial.printf("Li-Ion Max:     %f\n", 4.2f);
-    Serial.printf("Li-Ion Min:     %f\n", 3.1f);
-    Serial.printf("Bat Percentage: %f%\n", bat_percentage);
-
-    char buffer[100];
-    sprintf(buffer, "{\"bat_voltage\": \"%f\", \"bat_percentage\": \"%f\"}", bat_voltage, bat_percentage);
-
-    Serial.printf("MQTT (send): '%s': '%s'\n", HOSTNAME MQTT_BATTERY_TOPIC, buffer);
-    MQTT_connect();
-    pub_feed_battery.publish(buffer);
   }
+
+  float bat_voltage    = adc.readVoltage() * 1.7f;
+  float bat_percentage = ((bat_voltage - 3.1f) / (4.2f - 3.1f)) * 100;
+
+  Serial.printf("Bat Voltage:    %f\n", bat_voltage);
+  Serial.printf("Li-Ion Max:     %f\n", 4.2f);
+  Serial.printf("Li-Ion Min:     %f\n", 3.1f);
+  Serial.printf("Bat Percentage: %f%\n", bat_percentage);
+
+  char buffer[100];
+  sprintf(buffer, "{\"bat_voltage\": \"%f\", \"bat_percentage\": \"%f\"}", bat_voltage, bat_percentage);
+
+  Serial.printf("MQTT (send): '%s': '%s'\n", HOSTNAME MQTT_BATTERY_TOPIC, buffer);
+  MQTT_connect();
+  pub_feed_battery.publish(buffer);
 
   Serial.println("Disconnecting from broker…");
   mqtt.disconnect();
+  delay(100);
 
 deepsleepnow:
   // Go to deep sleep now and wait for external button to be pressed (or timer wakeup for status messages)
