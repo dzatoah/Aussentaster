@@ -42,3 +42,6 @@ const gpio_num_t EXTERNAL_BAT_ADC_PIN = GPIO_NUM_34;
 
 // OTA Mode
 #define OTA_SEC_WAIT_FOR_UPLOAD 5 * 60
+
+// Time between status updates (in seconds)
+#define TIME_SLEEP_STATUS_UPDATES 1 * 60 * 60 // 1 Hour

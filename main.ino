@@ -69,6 +69,8 @@ long otamode_then_reminder = millis();
 long otamode_then_led      = millis();
 bool otaMode = false;
 
+#define uS_TO_S_FACTOR 1000000ULL  /* Conversion factor for micro seconds to seconds */
+
 RTC_DATA_ATTR int bootCount = 0;
 void setup() {
   Serial.begin(115200);
@@ -80,6 +82,11 @@ void setup() {
   adc.attach(EXTERNAL_BAT_ADC_PIN);
 
   print_wakeup_reason();
+
+  // Status Updates or pressing external button should wake up the ESP32
+  Serial.printf("Sending status message every %s seconds.\n", String(TIME_SLEEP_STATUS_UPDATES));
+  esp_sleep_enable_timer_wakeup(TIME_SLEEP_STATUS_UPDATES * uS_TO_S_FACTOR);
+  Serial.printf("Sending MQTT message to '%s' if external button connected to '%i' gets pressed.\n", HOSTNAME MQTT_BUTTON_TOPIC, EXTERNAL_BUTTON_PIN);
   esp_sleep_enable_ext0_wakeup(EXTERNAL_BUTTON_PIN, HIGH);
 
   // WiFi Setup
@@ -196,29 +203,9 @@ bool checkForOTA() {
 }
 
 void loop() {
-  if (!mqtt.connected()) {
-    Serial.println("Connecting to broker…");
-    MQTT_connect();
-    Serial.println("Connected.");
-  }
-
   if (otaMode) {
     // Countdown
     if (millis() - otamode_then_reminder >= 10 * 1000) {
-      float bat_voltage    = adc.readVoltage() * 1.7f;
-      float bat_percentage = ((bat_voltage - 3.1f) / (4.2f - 3.1f)) * 100;
-
-      Serial.printf("Bat Voltage:    %f\n", bat_voltage);
-      Serial.printf("Li-Ion Max:     %f\n", 4.2f);
-      Serial.printf("Li-Ion Min:     %f\n", 3.1f);
-      Serial.printf("Bat Percentage: %f%\n", bat_percentage);
-
-      char buffer[100];
-      sprintf(buffer, "{\"bat_voltage\": \"%f\", \"bat_percentage\": \"%f\"}", bat_voltage, bat_percentage);
-
-      Serial.printf("MQTT (send): '%s': '%s'\n", HOSTNAME MQTT_BATTERY_TOPIC, buffer);
-      pub_feed_battery.publish(buffer);
-
       Serial.printf("Waiting for OTA (waited for %i of %i seconds already…)\n", (millis() - otamode_then_global) / 1000, OTA_SEC_WAIT_FOR_UPLOAD);
       Serial.println();
       otamode_then_reminder = millis();
@@ -247,15 +234,31 @@ void loop() {
   // Only if someone pressed the external button (which causes the ESP32 to wake up)
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0) {
     Serial.printf("MQTT (send): '%s': '%s'\n", HOSTNAME MQTT_BUTTON_TOPIC, "pressed");
+    MQTT_connect();
     pub_feed_button.publish("pressed");
+  } else if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) {
+    float bat_voltage    = adc.readVoltage() * 1.7f;
+    float bat_percentage = ((bat_voltage - 3.1f) / (4.2f - 3.1f)) * 100;
+
+    Serial.printf("Bat Voltage:    %f\n", bat_voltage);
+    Serial.printf("Li-Ion Max:     %f\n", 4.2f);
+    Serial.printf("Li-Ion Min:     %f\n", 3.1f);
+    Serial.printf("Bat Percentage: %f%\n", bat_percentage);
+
+    char buffer[100];
+    sprintf(buffer, "{\"bat_voltage\": \"%f\", \"bat_percentage\": \"%f\"}", bat_voltage, bat_percentage);
+
+    Serial.printf("MQTT (send): '%s': '%s'\n", HOSTNAME MQTT_BATTERY_TOPIC, buffer);
+    MQTT_connect();
+    pub_feed_battery.publish(buffer);
   }
 
   Serial.println("Disconnecting from broker…");
   mqtt.disconnect();
 
 deepsleepnow:
-  // Go to deep sleep now and wait for external button to be pressed.
-  Serial.println("Going to sleep now until someone presses the external button…");
+  // Go to deep sleep now and wait for external button to be pressed (or timer wakeup for status messages)
+  Serial.println("Going to sleep now…");
   esp_deep_sleep_start();
 }
 
@@ -269,6 +272,7 @@ void MQTT_connect() {
     return;
   }
 
+  Serial.println("Trying to connect to MQTT broker…");
   uint8_t retries = 3;
   while ((ret = mqtt.connect()) != 0) { // connect will return 0 for connected
        Serial.println(mqtt.connectErrorString(ret));
@@ -281,6 +285,7 @@ void MQTT_connect() {
          while (1);
        }
   }
+  Serial.println("Successfully connected to MQTT broker.");
 }
 
 // Method to print the reason by which ESP32
