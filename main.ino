@@ -46,6 +46,9 @@ More resistence -> more unstable but longer battery life
 
 */
 
+const char compile_date[] = __DATE__ " " __TIME__;
+#define SOFTWARE_VERSION "1.0"
+
 // Function prototypes
 void print_wakeup_reason();
 void MQTT_connect();
@@ -75,6 +78,8 @@ RTC_DATA_ATTR int bootCount = 0;
 void setup() {
   Serial.begin(115200);
   Serial.printf("Booting for the %i time\n", bootCount++);
+  Serial.printf("Software Version: %s\n", SOFTWARE_VERSION);
+  Serial.printf("Compile Date: %s\n", compile_date);
 
   pinMode(EXTERNAL_BUTTON_PIN, INPUT);
   pinMode(LED_BUILTIN, OUTPUT);
